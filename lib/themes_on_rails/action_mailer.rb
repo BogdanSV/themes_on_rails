@@ -1,0 +1,79 @@
+module ThemesOnRails
+  class ActionMailer
+    attr_reader :theme_name
+
+    class << self
+      def apply_theme(mailer_class, theme, options = {})
+        filter_method = before_filter_method(options)
+        options       = options.slice(:only, :except)
+
+        # set layout
+        mailer_class.class_eval do
+          define_method :layout_from_theme do
+            theme_instance.theme_name
+          end
+
+          define_method :theme_instance do
+            @theme_instance ||= ThemesOnRails::ActionMailer.new(self, theme)
+          end
+
+          define_method :current_theme do
+            theme_instance.theme_name
+          end
+
+          private :layout_from_theme, :theme_instance
+          layout  :layout_from_theme, options
+          default theme: theme
+          helper_method :current_theme
+        end
+p "mailer_class #{mailer_class.inspect}"
+
+        mailer_class.send(filter_method, options) do |mailer|
+          p "mailer object is #{ mailer.inspect }"
+          # prepend view path
+          mailer.prepend_view_path theme_instance.theme_view_path
+
+          # liquid file system
+          Liquid::Template.file_system = Liquid::Rails::FileSystem.new(theme_instance.theme_view_path) if defined?(Liquid::Rails)
+        end
+      end
+
+      private
+      def before_filter_method(options)
+        case Rails::VERSION::MAJOR
+        when 3
+          options.delete(:prepend) ? :prepend_before_filter : :before_filter
+        when 4, 5
+          options.delete(:prepend) ? :prepend_before_action : :before_action
+        end
+      end
+    end
+
+    def initialize(mailer, theme)
+      @mailer = mailer
+      @theme_name = _theme_name(theme)
+    end
+
+    def theme_view_path
+      "#{prefix_path}/#{@theme_name}/views"
+    end
+
+    def prefix_path
+      "#{Rails.root}/app/themes"
+    end
+
+    private
+
+      def _theme_name(theme)
+        case theme
+        when String     then theme
+        when Proc       then theme.call(@mailer).to_s
+        when Symbol
+          @mailer.respond_to?(theme, true) ? @mailer.send(theme).to_s : theme.to_s
+        else
+          raise ArgumentError,
+            "String, Proc, or Symbol, expected for `theme'; you passed #{theme.inspect}"
+        end
+      end
+  end
+end
