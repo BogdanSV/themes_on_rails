@@ -27,10 +27,8 @@ module ThemesOnRails
           default theme: theme
           helper_method :current_theme
         end
-p "mailer_class #{mailer_class.inspect}"
 
         mailer_class.send(filter_method, options) do |mailer|
-          p "mailer object is #{ mailer.inspect }"
           # prepend view path
           mailer.prepend_view_path theme_instance.theme_view_path
 
@@ -52,7 +50,8 @@ p "mailer_class #{mailer_class.inspect}"
 
     def initialize(mailer, theme, default_theme)
       @mailer = mailer
-      @theme_name = _theme_name(theme || default_theme)
+      @default_theme = default_theme
+      @theme_name = _theme_name(theme)
     end
 
     def theme_view_path
@@ -71,6 +70,7 @@ p "mailer_class #{mailer_class.inspect}"
         when Proc       then theme.call(@mailer).to_s
         when Symbol
           @mailer.respond_to?(theme, true) ? @mailer.send(theme).to_s : theme.to_s
+        when nil        then @default_theme
         else
           raise ArgumentError,
             "String, Proc, or Symbol, expected for `theme'; you passed #{theme.inspect}"
