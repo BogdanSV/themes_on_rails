@@ -3,7 +3,8 @@ module ThemesOnRails
     attr_reader :theme_name
 
     class << self
-      def apply_theme(mailer_class, theme, options = {})
+      def apply_theme(mailer_class, theme, default_theme, options = {})
+        default_theme ||= 'default'
         filter_method = before_filter_method(options)
         options       = options.slice(:only, :except)
 
@@ -14,7 +15,7 @@ module ThemesOnRails
           end
 
           define_method :theme_instance do
-            @theme_instance ||= ThemesOnRails::ActionMailer.new(self, theme)
+            @theme_instance ||= ThemesOnRails::ActionMailer.new(self, theme, default_theme)
           end
 
           define_method :current_theme do
@@ -49,9 +50,9 @@ p "mailer_class #{mailer_class.inspect}"
       end
     end
 
-    def initialize(mailer, theme)
+    def initialize(mailer, theme, default_theme)
       @mailer = mailer
-      @theme_name = _theme_name(theme)
+      @theme_name = _theme_name(theme || default_theme)
     end
 
     def theme_view_path
