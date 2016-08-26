@@ -28,6 +28,7 @@ module ThemesOnRails
           template "layout.html.haml", "#{theme_views_layout}/#{theme_name}.html.haml"
         else
           template "layout.html.erb", "#{theme_views_layout}/#{theme_name}.html.erb"
+          template "_mailer.html.erb", "#{theme_views_layout}/_mailer.html.erb"
         end
       end
 
