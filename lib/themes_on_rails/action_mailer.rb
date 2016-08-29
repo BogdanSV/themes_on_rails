@@ -15,7 +15,7 @@ module ThemesOnRails
           end
 
           define_method :theme_instance do
-            @theme_instance ||= ThemesOnRails::ActionMailer.new(self, theme, default_theme)
+            @theme_instance = ThemesOnRails::ActionMailer.new(self, theme, default_theme)
           end
 
           define_method :current_theme do
