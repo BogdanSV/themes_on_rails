@@ -3,48 +3,17 @@ module ThemesOnRails
     attr_reader :theme_name
 
     class << self
-      def apply_theme(mailer_class, theme, default_theme, options = {})
-        default_theme ||= 'default'
-        filter_method = before_filter_method(options)
-        options       = options.slice(:only, :except)
+      def apply_theme(mailer_instance, theme, default_theme, options = {})
+        mailer_class  = mailer_instance.class
 
-        # set layout
-        mailer_class.class_eval do
-          define_method :layout_from_theme do
-            theme_instance.theme_name
-          end
+        @theme_instance = ThemesOnRails::ActionMailer.new(self, theme, default_theme)
+        # prepend view path
+        mailer_instance.prepend_view_path(@theme_instance.theme_view_path)
+        # liquid file system
+        Liquid::Template.file_system = Liquid::Rails::FileSystem.new(@theme_instance.theme_view_path) if defined?(Liquid::Rails)
 
-          define_method :theme_instance do
-            @theme_instance = ThemesOnRails::ActionMailer.new(self, theme, default_theme)
-          end
-
-          define_method :current_theme do
-            theme_instance.theme_name
-          end
-
-          private :layout_from_theme, :theme_instance
-          layout  :layout_from_theme, options
-          default theme: theme
-          helper_method :current_theme
-        end
-
-        mailer_class.send(filter_method, options) do |mailer|
-          # prepend view path
-          mailer.prepend_view_path theme_instance.theme_view_path
-
-          # liquid file system
-          Liquid::Template.file_system = Liquid::Rails::FileSystem.new(theme_instance.theme_view_path) if defined?(Liquid::Rails)
-        end
-      end
-
-      private
-      def before_filter_method(options)
-        case Rails::VERSION::MAJOR
-        when 3
-          options.delete(:prepend) ? :prepend_before_filter : :before_filter
-        when 4, 5
-          options.delete(:prepend) ? :prepend_before_action : :before_action
-        end
+        mailer_class.default theme: @theme_instance.theme_name
+        # mailer_class.layout  @theme_instance.theme_name
       end
     end
 
